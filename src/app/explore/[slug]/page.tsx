@@ -1,77 +1,62 @@
 import Link from 'next/link'
 import { MapPin, ShieldAlert, BadgeCheck, Clock, CheckCircle2, Copy } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
-// Mock context for the ad detail since database isn't connected to NextJS route handlers yet
-const MOCK_AD = {
-  id: '1',
-  title: 'Premium Office Space in Downtown',
-  description: 'A fully furnished 2500 sqft premium office space located in the heart of downtown. Features high-speed internet, conference rooms, break areas, and a dedicated reception. \n\nPerfect for a tech startup or agency. Utilities are included in the price. Minimum 12-month lease required.',
-  price: '$2,500/mo',
-  city: 'New York',
-  category: 'Real Estate',
-  is_featured: true,
-  package_name: 'Premium',
-  views: 1245,
-  published_at: '2026-03-25T10:00:00Z',
-  expire_at: '2026-04-25T10:00:00Z',
-  seller: {
-    name: 'Metropolis Properties',
-    joined: 'Jan 2025',
-    verified: true,
-    ads_count: 5
-  },
-  media: {
-    type: 'youtube', // Can also be 'image'
-    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
-    video_id: 'dQw4w9WgXcQ' // Mock youtube id if type was youtube
-  }
-}
+export const dynamic = 'force-dynamic';
 
-export default async function AdDetailPage({ params }: { params: { slug: string } }) {
-  const { data: adData, error } = await supabase
+export default async function AdDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const { data: adData, error } = await supabaseAdmin
     .from('ads')
     .select('*, profiles(full_name, created_at), categories(name), cities(name), packages(name, price, is_featured), ad_media(source_type, original_url)')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single()
 
-  let ad = MOCK_AD;
-
-  if (adData && !error) {
-    // Basic YouTube ID extraction helper
-    const extractYoutubeId = (url: string) => {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : 'dQw4w9WgXcQ';
-    };
-
-    const mediaType = adData.ad_media?.[0]?.source_type || 'image';
-
-    ad = {
-      id: adData.id,
-      title: adData.title,
-      description: adData.description || 'No description available for this listing.',
-      price: adData.packages?.price ? `$${adData.packages.price}` : 'Contact',
-      city: adData.cities?.name || 'Unknown Location',
-      category: adData.categories?.name || 'Uncategorized',
-      is_featured: adData.packages?.is_featured || false,
-      package_name: adData.packages?.name || 'Standard',
-      views: 0,
-      published_at: adData.publish_at || adData.created_at || new Date().toISOString(),
-      expire_at: adData.expire_at || new Date(Date.now() + 30*24*60*60*1000).toISOString(),
-      seller: {
-        name: adData.profiles?.full_name || 'Unknown Seller',
-        joined: adData.profiles?.created_at ? new Date(adData.profiles.created_at).toLocaleDateString() : 'Unknown Database Entry',
-        verified: false,
-        ads_count: 1
-      },
-      media: {
-        type: mediaType,
-        url: adData.ad_media?.[0]?.original_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
-        video_id: mediaType === 'youtube' ? extractYoutubeId(adData.ad_media[0].original_url) : 'dQw4w9WgXcQ'
-      }
-    };
+  if (!adData || error) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center">
+        <h1 className="text-3xl font-bold mb-4">Listing Not Found</h1>
+        <p className="text-muted-foreground mb-8">The ad you are looking for does not exist or has been removed.</p>
+        <Link href="/explore" className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold">
+          Back to Explore
+        </Link>
+      </div>
+    )
   }
+
+  // Basic YouTube ID extraction helper
+  const extractYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : 'dQw4w9WgXcQ';
+  };
+
+  const mediaType = adData.ad_media?.[0]?.source_type || 'image';
+
+  const ad = {
+    id: adData.id,
+    title: adData.title,
+    description: adData.description || 'No description available for this listing.',
+    price: adData.packages?.price ? `$${adData.packages.price}` : 'Contact',
+    city: adData.cities?.name || 'Unknown Location',
+    category: adData.categories?.name || 'Uncategorized',
+    is_featured: adData.packages?.is_featured || false,
+    package_name: adData.packages?.name || 'Standard',
+    views: 0,
+    published_at: adData.publish_at || adData.created_at || new Date().toISOString(),
+    expire_at: adData.expire_at || new Date(Date.now() + 30*24*60*60*1000).toISOString(),
+    seller: {
+      name: adData.profiles?.full_name || 'Unknown Seller',
+      joined: adData.profiles?.created_at ? new Date(adData.profiles.created_at).toLocaleDateString() : 'Unknown Date',
+      verified: false,
+      ads_count: 1
+    },
+    media: {
+      type: mediaType,
+      url: adData.ad_media?.[0]?.original_url || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+      video_id: mediaType === 'youtube' ? extractYoutubeId(adData.ad_media[0].original_url) : 'dQw4w9WgXcQ'
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl">

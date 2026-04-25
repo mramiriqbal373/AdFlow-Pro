@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { ArrowLeft, Receipt, UploadCloud, ShieldCheck } from 'lucide-react'
 
-export default function PaymentUploadPage({ params }: { params: { id: string } }) {
-  const adId = params.id || 'ad-102';
+export default async function PaymentUploadPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const adId = id || 'ad-102';
   const pkgCost = '$89.00';
   const pkgName = 'Premium Package';
 

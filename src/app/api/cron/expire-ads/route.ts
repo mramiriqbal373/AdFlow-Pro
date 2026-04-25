@@ -41,7 +41,8 @@ export async function POST(request: Request) {
         expired_count: data?.length || 0, 
         ads: data 
     })
-  } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 })
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

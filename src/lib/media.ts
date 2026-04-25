@@ -49,7 +49,7 @@ export function normalizeMediaUrl(url: string) {
       validation_status = 'failed';
       thumbnail_url = '/placeholder.jpg';
     }
-  } catch (error) {
+  } catch {
     validation_status = 'failed';
     thumbnail_url = '/placeholder.jpg';
   }

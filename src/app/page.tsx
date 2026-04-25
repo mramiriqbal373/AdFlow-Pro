@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Star, ShieldCheck } from "lucide-react";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+export default async function Home() {
+  const [adsRes, pkgsRes] = await Promise.all([
+    supabaseAdmin.from('ads').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    supabaseAdmin.from('packages').select('*').order('price', { ascending: true })
+  ])
+
+  const activeAdsCount = adsRes.count || 0;
+  const packages = pkgsRes.data || [];
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
@@ -30,10 +41,10 @@ export default function Home() {
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/packages"
+              href="/auth/register"
               className="bg-secondary hover:bg-secondary/80 text-secondary-foreground px-8 py-4 rounded-xl font-bold text-lg transition-all flex items-center gap-2"
             >
-              View Packages
+              Start Listing
             </Link>
           </div>
         </div>
@@ -44,7 +55,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-black text-foreground mb-2">10k+</div>
+              <div className="text-4xl font-black text-foreground mb-2">{activeAdsCount}+</div>
               <div className="text-sm text-muted-foreground font-medium">Active Listings</div>
             </div>
             <div>
@@ -56,15 +67,15 @@ export default function Home() {
               <div className="text-sm text-muted-foreground font-medium">Average Approval</div>
             </div>
             <div>
-              <div className="text-4xl font-black text-foreground mb-2">5M+</div>
-              <div className="text-sm text-muted-foreground font-medium">Monthly Views</div>
+              <div className="text-4xl font-black text-foreground mb-2">∞</div>
+              <div className="text-sm text-muted-foreground font-medium">Market Potential</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Packages Preview */}
-      <section className="py-24 relative">
+      <section className="py-24 relative" id="packages">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Choose Your Visibility</h2>
@@ -72,47 +83,38 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Basic Package */}
-            <div className="glass-effect rounded-3xl p-8 border border-border flex flex-col hover:border-primary/50 transition-colors">
-              <h3 className="text-2xl font-bold mb-2">Basic</h3>
-              <p className="text-muted-foreground mb-6">Standard 7-day listing</p>
-              <div className="text-4xl font-black mb-8">$19</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 7 Days Duration</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Standard Ranking (1x)</li>
-              </ul>
-              <Link href="/auth/login" className="block w-full text-center bg-secondary hover:bg-secondary/80 font-bold py-3 rounded-xl transition-colors">Get Started</Link>
-            </div>
-
-            {/* Premium Package */}
-            <div className="glass-effect rounded-3xl p-8 border-2 border-primary relative transform md:-translate-y-4 shadow-xl shadow-primary/10 flex flex-col">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                <Star className="w-4 h-4" fill="currentColor" /> Most Popular
+            {packages.map((pkg) => (
+              <div 
+                key={pkg.id}
+                className={`glass-effect rounded-3xl p-8 border flex flex-col transition-all hover:shadow-xl ${pkg.is_featured ? 'border-2 border-primary transform md:-translate-y-4 shadow-primary/10' : 'border-border hover:border-primary/50'}`}
+              >
+                {pkg.is_featured && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                    <Star className="w-4 h-4" fill="currentColor" /> Most Popular
+                  </div>
+                )}
+                <h3 className="text-2xl font-bold mb-2">{pkg.name}</h3>
+                <p className="text-muted-foreground mb-6">{pkg.duration_days}-day listing</p>
+                <div className="text-4xl font-black mb-8">${pkg.price}</div>
+                <ul className="space-y-4 mb-8 flex-1">
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> {pkg.duration_days} Days Duration</li>
+                  <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> {pkg.weight}x Ranking Score</li>
+                  {pkg.is_featured && <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Homepage Featured</li>}
+                </ul>
+                <Link 
+                  href="/auth/register" 
+                  className={`block w-full text-center font-bold py-3 rounded-xl transition-all ${pkg.is_featured ? 'bg-primary text-primary-foreground shadow-lg hover:bg-primary/90' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}
+                >
+                  Get Started
+                </Link>
               </div>
-              <h3 className="text-2xl font-bold mb-2">Premium</h3>
-              <p className="text-muted-foreground mb-6">Maximum exposure for 30 days</p>
-              <div className="text-4xl font-black mb-8">$89</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 30 Days Duration</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Homepage Featured</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Highest Ranking (3x)</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Auto-refresh every 3 days</li>
-              </ul>
-              <Link href="/auth/login" className="block w-full text-center bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 rounded-xl transition-colors shadow-lg">Go Premium</Link>
-            </div>
-
-            {/* Standard Package */}
-            <div className="glass-effect rounded-3xl p-8 border border-border flex flex-col hover:border-primary/50 transition-colors">
-              <h3 className="text-2xl font-bold mb-2">Standard</h3>
-              <p className="text-muted-foreground mb-6">Balanced 15-day listing</p>
-              <div className="text-4xl font-black mb-8">$49</div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 15 Days Duration</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Category Priority</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> Boosted Ranking (2x)</li>
-              </ul>
-              <Link href="/auth/login" className="block w-full text-center bg-secondary hover:bg-secondary/80 font-bold py-3 rounded-xl transition-colors">Get Started</Link>
-            </div>
+            ))}
+            
+            {packages.length === 0 && (
+              <div className="col-span-3 text-center py-10 text-muted-foreground italic">
+                No pricing packages defined in the database.
+              </div>
+            )}
           </div>
         </div>
       </section>

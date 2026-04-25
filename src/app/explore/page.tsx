@@ -1,25 +1,31 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, MapPin, Filter, Star } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
-// Mock Data for structure validation
-const MOCK_ADS = [
-  { id: '1', title: 'Premium Office Space in Downtown', slug: 'premium-office-space', price: '$2,500/mo', city: 'New York', category: 'Real Estate', is_featured: true, rank_score: 85, thumbnail: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80' },
-  { id: '2', title: '2023 Tesla Model 3 Long Range', slug: 'tesla-model-3-lr', price: '$42,000', city: 'San Francisco', category: 'Vehicles', is_featured: false, rank_score: 40, thumbnail: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=600&q=80' },
-  { id: '3', title: 'Professional Web Development Agency', slug: 'pro-web-dev', price: 'Contact', city: 'Remote', category: 'Services', is_featured: true, rank_score: 70, thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80' },
-  { id: '4', title: 'Used Herman Miller Aeron Chair', slug: 'herman-miller-aeron', price: '$450', city: 'Chicago', category: 'Furniture', is_featured: false, rank_score: 20, thumbnail: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?auto=format&fit=crop&w=600&q=80' }
-]
+export const dynamic = 'force-dynamic';
 
 export default async function ExploreAdsPage() {
-  const { data: adsData, error } = await supabase
+  const { data: adsData, error } = await supabaseAdmin
     .from('ads')
     .select('*, categories(name), cities(name), packages(price, is_featured), ad_media(thumbnail_url)')
     .eq('status', 'published');
 
-  let displayAds = MOCK_ADS;
+  interface AdWithRelations {
+    id: string;
+    title: string;
+    slug: string;
+    rank_score: number | null;
+    categories: { name: string } | null;
+    cities: { name: string } | null;
+    packages: { price: number; is_featured: boolean } | null;
+    ad_media: { thumbnail_url: string | null }[];
+  }
+
+  let displayAds: any[] = [];
 
   if (adsData && adsData.length > 0 && !error) {
-    displayAds = adsData.map((ad: any) => ({
+    displayAds = (adsData as unknown as AdWithRelations[]).map((ad) => ({
       id: ad.id,
       title: ad.title,
       slug: ad.slug,
@@ -95,8 +101,14 @@ export default async function ExploreAdsPage() {
           {displayAds.sort((a,b) => b.rank_score - a.rank_score).map((ad) => (
             <Link href={`/explore/${ad.slug}`} key={ad.id} className="group glass-effect border border-border rounded-2xl overflow-hidden hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all flex flex-col">
               <div className="relative aspect-[4/3] bg-muted overflow-hidden">
-                {/* Fallback image using object fit */}
-                <img src={ad.thumbnail} alt={ad.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {/* Optimized Image component */}
+                <Image 
+                  src={ad.thumbnail} 
+                  alt={ad.title} 
+                  fill 
+                  className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
                 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex flex-col gap-2">
