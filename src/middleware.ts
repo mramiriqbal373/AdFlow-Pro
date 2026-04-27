@@ -43,13 +43,17 @@ export async function middleware(req: NextRequest) {
   }
 
   // Token is valid, proceed
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(req.headers);
   
   // Pass user info via headers so API routes can read it easily
-  response.headers.set('x-user-id', payload.sub as string);
-  response.headers.set('x-user-role', payload.role as string);
+  requestHeaders.set('x-user-id', payload.sub as string);
+  requestHeaders.set('x-user-role', payload.role as string);
 
-  return response;
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {
